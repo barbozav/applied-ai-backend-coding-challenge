@@ -1,0 +1,25 @@
+version: "3.7"
+
+services:
+  postgres:
+    container_name: challenge_postgres
+    image: postgres:10
+    environment:
+      - POSTGRES_USER=unbabel
+      - POSTGRES_PASSWORD=unbabel
+      - POSTGRES_DB=translations
+    ports:
+      - 15432:5432
+
+  app:
+    container_name: challenge_app
+    build: .
+    volumes:
+      - .:/src
+    ports:
+      - 5000:5000
+    links:
+      - postgres
+    depends_on:
+      - postgres
+    command:  "python -m pytest tests/"

@@ -1,0 +1,8 @@
+<tr>
+    <td>{{ translation.text }}</td>
+    {% if translation.status == 'finished' %}
+    <td>{{ translation.translated_text }}</td>
+    {% else %}
+    <td><i>{{ translation.status }}</i></td>
+    {% endif %}
+</tr>

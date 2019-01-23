@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% import 'bootstrap/wtf.html' as wtf %}
+
+{% block app_content %}
+<h1>Unbabel Backend Coding Challenge</h1>
+{% if form %}
+{{ wtf.quick_form(form) }}
+<br>
+{% endif %}
+
+<table class="table table-hover">
+    <thead class="thead-light">
+        <th>English Text</th>
+        <th>Spanish Text</th>
+    </thead>
+
+    <tbody id='translations'>
+        {% for translation in translations %}
+        {% include '_translation.html' %}
+        {% endfor %}
+    </tbody>
+</table>
+
+<div id='result'></div>
+
+<nav aria-label="...">
+    <ul class="pager">
+        <li class="previous{% if not prev_url %} disabled{% endif %}">
+            <a href="{{ prev_url or '#' }}">
+                <span aria-hidden="true">&larr;</span> Newer translations
+            </a>
+        </li>
+        <li class="next{% if not next_url %} disabled{% endif %}">
+            <a href="{{ next_url or '#' }}">
+                Older translations <span aria-hidden="true">&rarr;</span>
+            </a>
+        </li>
+    </ul>
+</nav>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    function pollTranslations() {
+        // Get the URL argument "page" if set.
+        page = "1";
+        searchParams = new URLSearchParams(window.location.search);
+        if (searchParams.has("page")) {
+            page = searchParams.get("page");
+        }
+
+        // Get translations from the JSON route.
+        $.getJSON("/json?page=" + page, function (data) {
+            rows = "";
+            $(data).each(function (i, translation) {
+                if (translation.status === "finished") {
+                    translated_text = translation.translated_text;
+                } else {
+                    translated_text = "<i>" + translation.status + "</i>";
+                }
+
+                // Append a table row.
+                rows += "<tr>" +
+                    "<td>" + translation.text + "</td>" +
+                    "<td>" + translated_text + "</td>" +
+                    "</tr>";
+            });
+
+            // Write the table entries.
+            $("#translations").html(rows);
+        });
+
+        // Poll the JSON route every 5 seconds.
+        setTimeout(pollTranslations, 5000);
+    };
+
+    // Start polling after the page is loaded.
+    $(document).ready(function () {
+        pollTranslations();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,49 @@
+version: "3.7"
+
+services:
+  postgres:
+    container_name: challenge_postgres
+    restart: always
+    image: postgres:10
+    environment:
+      - POSTGRES_USER=unbabel
+      - POSTGRES_PASSWORD=unbabel
+      - POSTGRES_DB=translations
+    ports:
+      - 5432:5432
+
+  redis:
+    container_name: challenge_redis
+    restart: always
+    image: redis
+
+  app:
+    container_name: challenge_app
+    restart: always
+    build: .
+    ports:
+      - 5000:5000
+    volumes:
+      - .:/src
+    links:
+      - postgres
+      - redis
+    depends_on:
+      - worker
+      - postgres
+      - redis
+    command:  "gunicorn -k gevent -b 0.0.0.0:5000 challenge.application:app"
+
+  worker:
+    container_name: challenge_worker
+    restart: always
+    build: .
+    volumes:
+      - .:/src
+    links:
+      - postgres
+      - redis
+    depends_on:
+      - postgres
+      - redis
+    command: "dramatiq-gevent -p 9 challenge.application.tasks"
