@@ -1,4 +1,5 @@
 *.pyc
+sandbox/
 __pycache__/
 .hypothesis/
 .pytest_cache/

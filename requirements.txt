@@ -1,3 +1,13 @@
+# development
+flake8
+ipython
+isort
+pydocstring
+pylint
+rope
+yapf
+
+# production
 attrs
 dramatiq[redis]
 dynaconf
