@@ -47,23 +47,24 @@ My references are linked here alongside with the roadmap topics - some I've alre
 3. Update the README file (Introduction and Roadmap). **[OK]**
 4. Study the [Marian-decoder](https://marian-nmt.github.io/).
 5. Impement a simple application with the Marian-decoder.
-6. Study RabbitMQ library for C++.
-7. Implement a simple RabbitMQ consumer in C++.
+6. Study RabbitMQ library for C++. **[OK]**
+7. Implement a simple RabbitMQ consumer in C++. **[OK]**
 8. Implement the Marian-decoder consumer and task.
-9. Configure a Makefile.
-10. Configure RabbitMQ and re-configure Dramatiq.
-11. Implement a RabbitMQ producer in the worker.
-12. Update the docker-compose.
-13. Implement the MT service.
-14. Test the MT service.
-15. Update the `Translator` class to support the MT service.
-16. Test the `Translator` class.
-17. Improve the frontend.
-18. Write _docstrings_.
-19. Generate HTML documentation with [Sphinx](http://www.sphinx-doc.org/en/master/) and [doxygen](http://www.doxygen.nl/).
-20. Update the a README (Sequence diagrams and documentation).
-21. Organize commits with `git rebase` and clean feature branches.
-22. Deliver it.
+9. Write a Dockerfile for the RabbitMQ consumer in C++. **[OK]**
+10. Configure a Makefile. **[OK]**
+11. Configure RabbitMQ and re-configure Dramatiq.
+12. Implement a RabbitMQ producer in the worker.
+13. Update the docker-compose.
+14. Implement the MT service.
+15. Test the MT service.
+16. Update the `Translator` class to support the MT service.
+17. Test the `Translator` class.
+18. Improve the frontend.
+19. Write _docstrings_.
+20. Generate HTML documentation with [Sphinx](http://www.sphinx-doc.org/en/master/) and [doxygen](http://www.doxygen.nl/).
+21. Update the a README (Sequence diagrams and documentation).
+22. Organize commits with `git rebase` and clean feature branches.
+23. Deliver it.
 
 ## Solution design
 
