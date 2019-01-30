@@ -1,6 +1,7 @@
 import sys
 
 import dramatiq
+from dramatiq.brokers.rabbitmq import RabbitmqBroker
 from dramatiq.brokers.redis import RedisBroker
 from dynaconf import FlaskDynaconf, settings
 from flask import Flask
@@ -80,7 +81,8 @@ def setup_worker():
 
     """
     logger.info('creating tasks queue')
-    broker = RedisBroker(url=f'{settings.REDIS_URL}')
+    #broker = RedisBroker(url=f'{settings.REDIS_URL}')
+    broker = RabbitmqBroker(url=f'{settings.RABBITMQ_URL}')
     dramatiq.set_broker(broker)
 
 

@@ -6,7 +6,7 @@ from challenge.application import repository  # noqa:F401
 from challenge.application import app, projections, translator
 
 
-@dramatiq.actor
+@dramatiq.actor(queue_name="manual-translation")
 def projections_task(id):
     """ Task for updating the read-model of an aggregate.
 
@@ -19,7 +19,7 @@ def projections_task(id):
     projections.update(id)
 
 
-@dramatiq.actor
+@dramatiq.actor(queue_name="manual-translation")
 def translation_task(id):
     """ Task for processing a translation.
 
@@ -38,6 +38,14 @@ def translation_task(id):
     Args:
         id (string): The translation aggregate UUID4 string.
     """
+    translation = repository.get(id)
+    translation = translator.process(translation)
+    repository.save(translation)
+    projections_task.send(id)
+
+
+@dramatiq.actor(queue_name="machine-translation")
+def mt_task(id):
     translation = repository.get(id)
     translation = translator.process(translation)
     repository.save(translation)
