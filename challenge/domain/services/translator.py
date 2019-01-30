@@ -4,7 +4,8 @@ from dynaconf import settings
 
 from challenge.domain.model.translation import (
     TranslationAborted, TranslationFinished, TranslationPending)
-from challenge.domain.services.unbabel.client import Client
+#from challenge.domain.services.unbabel.client import Client
+from challenge.domain.services.marian.client import Client
 from challenge.utils.logging import logger
 
 _translation_pending = ['new', 'accepted', 'translating']
@@ -30,10 +31,11 @@ class Translator:
     """
 
     def __init__(self, source_language, target_language):
-        self._client = Client(
-            client=settings.API_CLIENT,
-            token=settings.API_TOKEN,
-            url=settings.API_URL)
+        #self._client = Client(
+        #    client=settings.API_CLIENT,
+        #    token=settings.API_TOKEN,
+        #    url=settings.API_URL)
+        self._client = Client()
 
         self._source_language = source_language
         self._target_language = target_language
@@ -55,30 +57,33 @@ class Translator:
         logger.debug(
             f"Requesting translation with callback to '{callback_url}'")
 
-        response = self._client.request_translation(
-            text, self._source_language, self._target_language, callback_url)
+        #response = self._client.request_translation(
+        #    text, self._source_language, self._target_language, callback_url)
+        self._client.request_translation(text, callback_url)
 
         # Check for request errors
-        if 'error' in response.keys():
-            event = TranslationAborted.create(
-                f"Request error: {response['error']}")
-            translation.apply(event)
+        # if 'error' in response.keys():
+        #     event = TranslationAborted.create(
+        #         f"Request error: {response['error']}")
+        #     translation.apply(event)
 
-            logger.debug(f"Client returned an error: {response['error']}")
+        #     logger.debug(f"Client returned an error: {response['error']}")
 
-            return translation
+        #     return translation
 
-        uid = response['uid']
-        status = response['status']
+        # uid = response['uid']
+        # status = response['status']
 
-        logger.debug(f'Updating translation {translation.id}:{uid}')
+        # logger.debug(f'Updating translation {translation.id}:{uid}')
 
-        if status in _translation_pending:
-            event = TranslationPending.create(uid)
-            translation.apply(event)
-        else:
-            event = TranslationAborted.create(f'Translation error: {status}')
-            translation.apply(event)
+        # if status in _translation_pending:
+        #     event = TranslationPending.create(uid)
+        #     translation.apply(event)
+        # else:
+        #     event = TranslationAborted.create(f'Translation error: {status}')
+        #     translation.apply(event)
+        event = TranslationPending.create('0')
+        translation.apply(event)
 
         return translation
 
@@ -96,7 +101,8 @@ class Translator:
         """
         logger.debug(f'Requesting translation {translation.id}:'
                      f'{translation.translation_id}')
-        response = self._client.get_translation(translation.translation_id)
+        #response = self._client.get_translation(translation.translation_id)
+        response = None
 
         # Check for a response
         if response:
