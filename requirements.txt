@@ -9,7 +9,7 @@ yapf
 
 # production
 attrs
-dramatiq[redis]
+dramatiq[redis,rabbitmq]
 dynaconf
 Flask
 flask-bootstrap

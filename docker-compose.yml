@@ -10,12 +10,20 @@ services:
       - POSTGRES_PASSWORD=unbabel
       - POSTGRES_DB=translations
     ports:
-      - 5432:5432
+      - 54321:5432
 
   redis:
     container_name: challenge_redis
     restart: always
     image: redis
+
+  rabbitmq:
+    container_name: challenge_rabbitmq
+    restart: always
+    image: rabbitmq:3.7-management
+    ports:
+      - 5672:5672
+      - 15672:15672
 
   app:
     container_name: challenge_app
