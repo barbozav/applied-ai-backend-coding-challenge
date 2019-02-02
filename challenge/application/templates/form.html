@@ -1,5 +1,7 @@
 <form action="" method="post" novalidate>
     <div class="form-group">
+        {{ form.method.label }}
+        {{ form.method() }}
         {{ form.text.label }}
         {{ form.text() }}
         {% for error in form.text.errors %}
