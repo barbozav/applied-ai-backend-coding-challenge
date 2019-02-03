@@ -44,7 +44,11 @@ def index():
 
         repository.save(translation)
 
-        tasks.translation_task.send(translation.id)
+        method = form.method.data
+        if method == 'mt':
+            tasks.mt_task.send(translation.id)
+        else:
+            tasks.translation_task.send(translation.id)
         tasks.projections_task.send(translation.id)
 
         return redirect(url_for('index'))
@@ -109,6 +113,8 @@ def callback(id=None):
 
     """
     if id:
+        logger.debug(request.data)
+        print(request.data)
         logger.debug(f'processing POST "/callback/{id}"')
         translation = repository.get(id)
         translation = translator.get(translation)

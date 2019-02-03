@@ -2,10 +2,11 @@ from urllib.parse import urljoin
 
 from dynaconf import settings
 
-from challenge.domain.model.translation import (
-    TranslationAborted, TranslationFinished, TranslationPending)
-#from challenge.domain.services.unbabel.client import Client
-from challenge.domain.services.marian.client import Client
+from challenge.domain.model.translation import (TranslationAborted,
+                                                TranslationFinished,
+                                                TranslationPending)
+from challenge.domain.services.marian.client import Client as MarianClient
+from challenge.domain.services.unbabel.client import Client as UnbabelClient
 from challenge.utils.logging import logger
 
 _translation_pending = ['new', 'accepted', 'translating']
@@ -31,11 +32,12 @@ class Translator:
     """
 
     def __init__(self, source_language, target_language):
-        #self._client = Client(
-        #    client=settings.API_CLIENT,
-        #    token=settings.API_TOKEN,
-        #    url=settings.API_URL)
-        self._client = Client()
+        self._unbabel_client = UnbabelClient(
+            client=settings.API_CLIENT,
+            token=settings.API_TOKEN,
+            url=settings.API_URL)
+
+        self._marian_client = MarianClient()
 
         self._source_language = source_language
         self._target_language = target_language
@@ -44,7 +46,7 @@ class Translator:
         """Process a requested translation and update its status.
 
         As its through an external service, it changes the Translation
-        resource status to "pending" after snding a request to the
+        resource status to "pending" after sending a request to the
         Unbabel's API.
 
         Args:
@@ -57,33 +59,30 @@ class Translator:
         logger.debug(
             f"Requesting translation with callback to '{callback_url}'")
 
-        #response = self._client.request_translation(
-        #    text, self._source_language, self._target_language, callback_url)
-        self._client.request_translation(text, callback_url)
+        response = self._unbabel_client.request_translation(
+            text, self._source_language, self._target_language, callback_url)
 
         # Check for request errors
-        # if 'error' in response.keys():
-        #     event = TranslationAborted.create(
-        #         f"Request error: {response['error']}")
-        #     translation.apply(event)
+        if 'error' in response.keys():
+            event = TranslationAborted.create(
+                f"Request error: {response['error']}")
+            translation.apply(event)
 
-        #     logger.debug(f"Client returned an error: {response['error']}")
+            logger.debug(f"Client returned an error: {response['error']}")
 
-        #     return translation
+            return translation
 
-        # uid = response['uid']
-        # status = response['status']
+        uid = response['uid']
+        status = response['status']
 
-        # logger.debug(f'Updating translation {translation.id}:{uid}')
+        logger.debug(f'Updating translation {translation.id}:{uid}')
 
-        # if status in _translation_pending:
-        #     event = TranslationPending.create(uid)
-        #     translation.apply(event)
-        # else:
-        #     event = TranslationAborted.create(f'Translation error: {status}')
-        #     translation.apply(event)
-        event = TranslationPending.create('0')
-        translation.apply(event)
+        if status in _translation_pending:
+            event = TranslationPending.create(uid)
+            translation.apply(event)
+        else:
+            event = TranslationAborted.create(f'Translation error: {status}')
+            translation.apply(event)
 
         return translation
 
@@ -101,8 +100,8 @@ class Translator:
         """
         logger.debug(f'Requesting translation {translation.id}:'
                      f'{translation.translation_id}')
-        #response = self._client.get_translation(translation.translation_id)
-        response = None
+        response = self._unbabel_client.get_translation(
+            translation.translation_id)
 
         # Check for a response
         if response:
@@ -135,5 +134,37 @@ class Translator:
             logger.debug(f"Client returned an error: not found")
             event = TranslationAborted.create(f'Translation not found.')
             translation.apply(event)
+
+        return translation
+
+    def mt_process(self, translation):
+        """Automatically process translation and update its status.
+
+        Args:
+            translation (Translation): The translation to be processed.
+
+        """
+        text = translation.text
+        callback_url = urljoin(settings.API_CALLBACK, translation.id)
+
+        logger.debug(f'Requesting automatic translation with callback to '
+                     f"'{callback_url}'")
+
+        try:
+            self._marian_client.request_translation(
+                text, self._source_language, self._target_language,
+                callback_url)
+        except Exception as e:
+            event = TranslationAborted.create(f'Task scheduling error.')
+            translation.apply(event)
+
+            logger.debug(f'Client returned an error: {e.message}')
+
+            return translation
+
+        logger.debug(f'Updating translation {translation.id}')
+
+        event = TranslationPending.create('')
+        translation.apply(event)
 
         return translation

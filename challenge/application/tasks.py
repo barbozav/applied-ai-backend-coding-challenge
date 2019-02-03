@@ -24,16 +24,12 @@ def translation_task(id):
     """ Task for processing a translation.
 
     This task is responsible for requesting the translation service to
-    translated a given text from English to Spanish.
+    translate a given text from English to Spanish.
 
     The Translation aggregate is already created and persisted, so this
     task must fetch its data. If for some reason the application goes
     down, it's possible to reprocess "requested" translations adding
     their IDs to the workers queue.
-
-    After sending a request to the translation service, this worker will
-    persist a tracking identifier and poll this translation until it's
-    finished.
 
     Args:
         id (string): The translation aggregate UUID4 string.
@@ -46,7 +42,20 @@ def translation_task(id):
 
 @dramatiq.actor(queue_name="machine-translation")
 def mt_task(id):
+    """ Task for automatically processing a translation.
+
+    This task is responsible for requesting the translation service to
+    translate a given text from English to Spanish.
+
+    The Translation aggregate is already created and persisted, so this
+    task must fetch its data. If for some reason the application goes
+    down, it's possible to reprocess "requested" translations adding
+    their IDs to the workers queue.
+
+    Args:
+        id (string): The translation aggregate UUID4 string.
+    """
     translation = repository.get(id)
-    translation = translator.process(translation)
+    translation = translator.mt_process(translation)
     repository.save(translation)
     projections_task.send(id)
