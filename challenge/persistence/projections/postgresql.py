@@ -87,6 +87,11 @@ class PostgresTranslation:
                 'aggregate_uuid': aggregate_uuid,
                 'translated_text': translated_text
             }
+        elif status == 'aborted':
+            sql = text(f"UPDATE translations "
+                       f"SET status = 'aborted' "
+                       f"WHERE uuid = :aggregate_uuid")
+            values = {'aggregate_uuid': aggregate_uuid}
 
         logger.debug(sql)
         session.execute(sql, values)
