@@ -113,13 +113,19 @@ def callback(id=None):
 
     """
     if id:
-        logger.debug(request.data)
-        print(request.data)
         logger.debug(f'processing POST "/callback/{id}"')
+
         translation = repository.get(id)
-        translation = translator.get(translation)
+
+        if request.data:
+            data = json.loads(request.data)
+            translation = translator.update(translation, data)
+        else:
+            translation = translator.get(translation)
+
         repository.save(translation)
         tasks.projections_task.send(id)
+
         return jsonify(success=True)
 
     return jsonify(error=404, text="Resource not found.")
