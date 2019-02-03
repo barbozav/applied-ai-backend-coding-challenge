@@ -1,10 +1,10 @@
-# Unbabel Backend Challenge
+# Unbabel Applied AI Challenge
 
 Hello again, Unbabel recruiting team!
 
 This is my solution to the [Unbabel Applied AI Challenge](https://github.com/Unbabel/applied-ai-backend-coding-challenge), based on [my previous solution](https://github.com/barbozav/backend-coding-challenge) to the Unbabel Backend Challenge.
 
-Prevously, I've developed a Flask web application which translates (manually) input text from English to Spanish using Unbabel's API, presenting it in a list of translations dynamically updated with 3 different statuses: _requested_, _pending_ and _translated_. Tests were implemented for the domain layer - covering the translation services, event-sourcing model and repositories.
+Previously, I've developed a Flask web application which translates (manually) input text from English to Spanish using Unbabel's API, presenting it in a list of translations dynamically updated with 3 different statuses: _requested_, _pending_ and _translated_. Tests were implemented for the domain layer - covering the translation services, event-sourcing model and repositories.
 
 As I've chosen a domain-driven architecture, this solution integrates the Marian-decoder as a new translation service (MT) without too much changes from the rest of the source code (except for a few improvements).
 
@@ -15,6 +15,7 @@ Documentation consists on this README.md and source code documentation (_docstri
 * *[Docker](https://www.docker.com/)*
 * *[docker-compose](https://docs.docker.com/compose/)*
 * *[ngrok](https://ngrok.com/) (optional for HTTP tunneling and receiving callbacks)*
+* A NMT model obtained with [Marian-NMT](https://marian-nmt.github.io/).
 
 ## TL;DR
 
@@ -29,7 +30,7 @@ Documentation consists on this README.md and source code documentation (_docstri
 * *Run the application:*
 
 ```bash
-docker-compose up -f docker-compose.yml --build --force-recreate
+docker-compose up -f docker-compose.yml --build
 ```
 
 * *Access it:*
@@ -50,18 +51,18 @@ My references are linked here alongside with the roadmap topics - some I've alre
 6. Study RabbitMQ library for C++. **[OK]**
 7. Implement a simple RabbitMQ consumer in C++. **[OK]**
 8. Study CURL library for C++. **[OK]**
-9. Implement a POST to the application callback URL.
+9. Implement a POST to the application callback URL. **[OK]**
 10. Configure a Makefile. **[OK]**
 11. Configure RabbitMQ and re-configure Dramatiq. **[OK]**
 12. Implement a machine-translation task. **[OK]**
 13. Implement a RabbitMQ publisher. **[OK]**
 14. Update the docker-compose. **[OK]**
-15. Implement the MT service client.
+15. Implement the MT service client. **[OK]**
 16. Test the MT service client.
-17. Update the `Translator` class to support the MT service.
+17. Update the `Translator` class to support the MT service. **[OK]**
 18. Test the `Translator` class.
-19. Improve the callback endpoint.
-20. Improve the frontend.
+19. Improve the callback endpoint. **[OK]**
+20. Improve the frontend. **[OK]**
 21. Write _docstrings_.
 22. Generate HTML documentation with [Sphinx](http://www.sphinx-doc.org/en/master/) and [doxygen](http://www.doxygen.nl/).
 23. Update the a README (Sequence diagrams and documentation).
@@ -78,19 +79,17 @@ My references are linked here alongside with the roadmap topics - some I've alre
 
 *My Flask reference is [Miguel Grinberg's Flask Mega-Tutorial book](https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-i-hello-world) which I have initially followed but as it uses available Flask extensions for everything, it makes too difficult to decouple the application layers.*
 
-*For settings management I am using `dynaconf` and its Flask extension. For the background tasks, I let `Dramatiq` handle the queues using `Redis` cache just because it's simple to configure - but I could have used RabbitMQ as well.*
+For settings management I am using `dynaconf` and its Flask extension. For the background tasks, I let `Dramatiq` handle the queues using `RabbitMQ`.
 
 *For the frontend, I am using `Flask-Bootstrap` styles, `Flask-WTF` forms and AJAX to poll the translations list.*
-
-*An attempt of using `Flask-SSE` to notify all clients with changes instead of AJAX polling failed - it couldn't connect to the same `Redis` cache as `Dramatiq`. Configuring 2 `Redis` instances with `docker-compose` was taking me too much time, an alternative would be using RabbitMQ for the tasks and Redis for the frontend cache instead.*
 
 ### Domain layer
 
 *For the translation services, I've chosen an event-sourcing approach (based on [this series of blog posts](https://breadcrumbscollector.tech/implementing-event-sourcing-in-python-part-1-aggregates/)) to properly handle the translation service status changes. My interpretation of the problem suggests the following logic:*
 
-* ***requested:** As soon as an input text is submitted to our application via the HTML forms, it is considered a requested translation.*
-* ***pending:** After sent to a translation service (in our case it's Unbabel API), its status changes from requested to pending and we have to wait until its completion (as we are requesting manual translations).*
-* ***finished:** When the translation service completes processing the input text (translating it from English to Spanish) and sends a POST to a callback URL in the application, our translation status changes to finished.*
+* _**requested:** As soon as an input text is submitted to our application via the HTML forms, it is considered a requested translation._
+* **pending:** After sent to a translation service (Unbabel API or a Marian-NMT server), its status changes from requested to pending and we have to wait until its completion (as we are requesting manual translations).
+* _**finished:** When the translation service completes processing the input text (translating it from English to Spanish) and sends a POST to a callback URL in the application, our translation status changes to finished._
 
 *All status changes are recorded as events in an event aggregate (which is a `Translation` object). This way, instead of having only the final state of an object, we can track down every modification (e.g. timestamps) and add other events to the logic in the future (other translation services appending to the events stream - internal x external services, automatic x manual services, etc).*
 
@@ -116,6 +115,8 @@ My references are linked here alongside with the roadmap topics - some I've alre
 
 *The following sequence diagram is a simple "good path"-only diagram illustrating the most important components calls and behaviors. It doesn't cover all paths (e.g. ignoring error handling) and it doesn't include the read-model (projections) when updating clients. Although, it's a good "mind map" of what is happening when a new translation is requested in a browser and sent to our application.*
 
+This diagram covers the automated translation scenario (using a C++ worker consuming from a RabbitMQ), but the manual sequence diagram can still be found [here](./resources/sequence.svg).
+
 ![Applicaton sequence diagram.](./resources/sequence.svg)
 
 ## Project organization
@@ -126,13 +127,9 @@ My references are linked here alongside with the roadmap topics - some I've alre
 
 *The single production, staging and development branches is avoided and feature branches were used instead.*
 
-*As soon as feature branches are merged into master, they were removed. Unfortunately, no PRs and code reviews were opened during development. (As I was developing all by myself, I've forgotten how useful it could be.)*
+*As soon as feature branches are merged into master, they were removed.*
 
-*"Baby steps" commits are recommended, but unfortunately (Shame on me!) a bunch of them are huge and contain too much changes to be reviewed in a single pass. Usually, it gets better after a large project is already up and running.*
-
-> ***Note:** I'll try to re-organize commits with `git rebase ` and improve the challenge reviewers experience.*
-
-### Source Code
+### Python Source Code
 
 *The root directory contains all configuration files required:*
 
@@ -142,15 +139,20 @@ My references are linked here alongside with the roadmap topics - some I've alre
 * *`docker-compose.yml` files  and `Dockerfile` for building and deploying the application;*
 * *`docker-compose.tests.yml` and `Dockerfile` files for building and testing the application.*
 
-*And documentation:*
-
-* *This `README.md` file and its `resources`.*
-
 *The application is developed as a `challenge` package and, as described above, it isolates the web application from the application domain and data persistence layers. The following image illustrates it with more details.*
 
 ![Application structure](./resources/structure.png)
 
 *For development, I've used `virtuallenvwrapper` and Visual Studio Code. All Python files were linted with `Flake8` (which is faster), `pylint` (which covers more issues), `pydocstrings`, formatted with `yapf` and `isort`.*
+
+### C++ Source Code
+
+The `nmt` directory contains the C++ worker project for the automated translation service:
+
+- `Makefile` for building and running the worker;
+- `marian` as a submodule for NMT;
+- `data/` directory with dataset and model;
+- `Dockerfile` for building the C++ worker in a container environment and use it with the Python project;
 
 ### Tests
 
@@ -165,7 +167,11 @@ My references are linked here alongside with the roadmap topics - some I've alre
 
 *The frontend tests are excluded as the application routes, templates and read-model. Studying `Selenium` could apply here.*
 
-*A simple browser debugger or extension is capable of returning the average load time of the application `/index`page - which is around 150 ms. A better approach would be test it with `Locust` or `JMeter` and do a proper analysis - scaling worker processes and threads as necessary.*
+*A simple browser debugger or extension is capable of returning the average load time of the application `/index` page - which is around 150 ms. A better approach would be test it with `Locust` or `JMeter` and do a proper analysis - scaling worker processes and threads as necessary.*
+
+### Train
+
+
 
 ### Build, tests and deploy
 
@@ -239,7 +245,7 @@ challenge_app exited with code 0
 4. *Run the application.*
 
 ```bash
-docker-compose up -f docker-compose.yml --build --force-recreate
+docker-compose up -f docker-compose.yml --build
 ```
 
 5. *Access the application using the HTTP tunnel or http://localhost:5000/*
@@ -250,10 +256,11 @@ docker-compose up -f docker-compose.yml --build --force-recreate
 
 *The following issues are known and yet to be fixed:*
 
-* *`Redis` is used as a message queue for the background workers without too much configuration. It's not reliable even though `Dramatiq` is managing it. A better solution would required properly configuring a message queue system as `RabbitMQ` and adding it to the `docker-compose` files.*
+* The current NMT model was trained with few iterations over a small vocabulary (due to computing limitations) resulting in poor translations - a better model should be used instead.
+* The integration of the C++ worker is through the Marian-NMT server, but the `marian` code could be compiled as a library to make it a single application.
 * *After some time, the AJAX polling loses connection with the PostgreSQL database. It requires further investigation, but implementing the event server with `Flash-SSE` could do.*
 * *After the translations list is dynamically updated, the "Newer translations" and "Older translations" buttons are not. It's required to refresh the page after 10 entries to do so.*
 * *Escape characters are returned from the PostgreSQL, sent to the translation services and printed in the frontend as well. Some translators deal with it, others don't.*
 * *There are no control over requests (to the databases or APIs). `Tenacity` could be of help.*
 * *There are insufficient tests for the application and persistence layer.*
-* *There are no stress tests to say the application is scalable.*
+  * *There are no stress tests to say the application is scalable.*
