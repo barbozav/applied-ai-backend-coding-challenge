@@ -154,11 +154,11 @@ class Translator:
             self._marian_client.request_translation(
                 text, self._source_language, self._target_language,
                 callback_url)
-        except Exception as e:
+        except:  # noqa: E722
             event = TranslationAborted.create(f'Task scheduling error.')
             translation.apply(event)
 
-            logger.debug(f'Client returned an error: {e.message}')
+            logger.debug(f'Client returned an error.')
 
             return translation
 
@@ -166,5 +166,24 @@ class Translator:
 
         event = TranslationPending.create('')
         translation.apply(event)
+
+        return translation
+
+    def update(self, translation, data):
+        logger.debug(f'Updating translation {translation.id}')
+
+        # Check for a response
+        if data:
+            status = data['status']
+
+            # Check wheter update a finished translation
+            if status in _translation_finished:
+                event = TranslationFinished.create(data['translated_text'])
+                translation.apply(event)
+            # Check any other status unknown
+            else:
+                event = TranslationAborted.create(
+                    f'Translation error: {status}')
+                translation.apply(event)
 
         return translation

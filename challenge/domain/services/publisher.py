@@ -42,7 +42,7 @@ class Publisher(object):
         properties = pika.BasicProperties(
             content_type='text/json', delivery_mode=1)
 
-        self._channel.basic_publish('unbabel', self._queue,
-                                    json.dumps(message), properties)
+        self._channel.basic_publish('unbabel', self._queue, message,
+                                    properties)
 
         logger.debug('published message')
