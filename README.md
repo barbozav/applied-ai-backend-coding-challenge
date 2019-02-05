@@ -2,20 +2,53 @@
 
 Hello again, Unbabel recruiting team!
 
-This is my solution to the [Unbabel Applied AI Challenge](https://github.com/Unbabel/applied-ai-backend-coding-challenge), based on [my previous solution](https://github.com/barbozav/backend-coding-challenge) to the Unbabel Backend Challenge.
+This is my (incomplete) solution to the [Unbabel Applied AI Challenge](https://github.com/Unbabel/applied-ai-backend-coding-challenge), based on [my previous solution](https://github.com/barbozav/backend-coding-challenge) to the Unbabel Backend Challenge.
 
-Previously, I've developed a Flask web application which translates (manually) input text from English to Spanish using Unbabel's API, presenting it in a list of translations dynamically updated with 3 different statuses: _requested_, _pending_ and _translated_. Tests were implemented for the domain layer - covering the translation services, event-sourcing model and repositories.
+Previously, I've developed a Flask web application which translates input text from English to Spanish using Unbabel's API. Tests were implemented for the domain layer - covering the translation services, event-sourcing model and repositories.
 
-As I've chosen a domain-driven architecture, this solution integrates the Marian-decoder as a new translation service (MT) without too much changes from the rest of the source code (except for a few improvements).
+As I've chosen a domain-driven architecture, this solution integrates the Marian-decoder as a new translation service with small changes only.
 
 Documentation consists on this README.md and source code documentation (_docstrings_). Text from the original documentation will be _italic_.
+
+#### What is missing?
+
+Before continuing with this documentation, I'm summarizing what is missing (and why) as the solution is incomplete. The following bullets are in chronological order:
+
+* It has been quite some time I've been developing this solution and I've decided it was time to let it go.
+
+* I had problems compiling Marian-NMT (both the `master` branch and the  `1.7.0` tag) due to lack of computer power, my configurations follow:
+
+  * Intel® Core™ i5-2410M CPU @ 2.30GHz × 4 with an integrated VGA (no CUDA) and 8GB of RAM;
+  * Ubuntu 18.10;
+  * gcc 8.2.0;
+
+  * libBLAS (from Ubuntu repositories) instead of CUDA or MKL;
+  * `$ cmake .. -DCOMPILE_CUDA=off` for configuring the build;
+  * Compilation stops at 88% with `microsoft/quicksand.cpp.o`.
+
+* I was suggested to use `1.6.0`, which compiled fine, however default training configurations (following the [Quick Start](https://marian-nmt.github.io/quickstart/) and [Documentation](https://marian-nmt.github.io/docs/)) also crashes my computer.
+
+* I tried to "guess and check" good parameters for training a model with Marian-NMT without running out of CPU or RAM - usually reducing vocabulary size, number of generations, number of batches, workspace memory and RNN dimensions.
+
+* I tried a few corpus available here: http://opus.nlpl.eu/index.php
+
+* The *do-able* training would result in bad translations (*garbage in - garbage out*).
+
+* I've considered running everything (latest version compilation, training and translation) in a GCP instance, but it would take me quite some time to configure everything.
+
+* In a few days, I've written a RabbitMQ consumer in C++ (see tag [*rabbitmq-consumer*](https://github.com/barbozav/applied-ai-backend-coding-challenge/tree/rabbitmq-consumer)) with empty room for a translation library, but it's been quite some time already.
+
+* In a single day, I've build a Docker image with `marian-server` running which doesn't meet the challenge requirements, but responds to the websockets requests from the Flask application.
+
+* Even though the `marian-server` works locally, it logs an "Not implemented!" error when responding to the Flask application.
+
+* I've decided to deliver the partial/incomplete solution.
 
 ## Requirements
 
 * *[Docker](https://www.docker.com/)*
 * *[docker-compose](https://docs.docker.com/compose/)*
 * *[ngrok](https://ngrok.com/) (optional for HTTP tunneling and receiving callbacks)*
-* A NMT model obtained with [Marian-NMT](https://marian-nmt.github.io/).
 
 ## TL;DR
 
@@ -46,8 +79,8 @@ My references are linked here alongside with the roadmap topics - some I've alre
 1. Fork the project. **[OK]**
 2. Re-use [Unbabel Backend Challenge](https://github.com/barbozav/backend-coding-challenge) source code. **[OK]**
 3. Update the README file (Introduction and Roadmap). **[OK]**
-4. Study the [Marian-decoder](https://marian-nmt.github.io/).
-5. Impement a simple application with the Marian-decoder.
+4. Study the [Marian-decoder](https://marian-nmt.github.io/). **[OK]**
+5. Impement a simple application with the Marian-decoder. **[OK]**
 6. Study RabbitMQ library for C++. **[OK]**
 7. Implement a simple RabbitMQ consumer in C++. **[OK]**
 8. Study CURL library for C++. **[OK]**
@@ -58,16 +91,16 @@ My references are linked here alongside with the roadmap topics - some I've alre
 13. Implement a RabbitMQ publisher. **[OK]**
 14. Update the docker-compose. **[OK]**
 15. Implement the MT service client. **[OK]**
-16. Test the MT service client.
+16. ~Test the MT service client.~
 17. Update the `Translator` class to support the MT service. **[OK]**
-18. Test the `Translator` class.
+18. ~Test the `Translator` class.~
 19. Improve the callback endpoint. **[OK]**
 20. Improve the frontend. **[OK]**
-21. Write _docstrings_.
-22. Generate HTML documentation with [Sphinx](http://www.sphinx-doc.org/en/master/) and [doxygen](http://www.doxygen.nl/).
-23. Update the a README (Sequence diagrams and documentation).
-24. Organize commits with `git rebase` and clean feature branches.
-25. Deliver it.
+21. ~Write _docstrings_.~
+22. ~Generate HTML documentation with [Sphinx](http://www.sphinx-doc.org/en/master/) and [doxygen](http://www.doxygen.nl/).~
+23. Update the a README (Sequence diagrams and documentation). **[OK]**
+24. Organize commits with `git rebase` and clean feature branches. **[OK]**
+25. Deliver it. **[OK]**
 
 ## Solution design
 
@@ -115,9 +148,9 @@ For settings management I am using `dynaconf` and its Flask extension. For the b
 
 *The following sequence diagram is a simple "good path"-only diagram illustrating the most important components calls and behaviors. It doesn't cover all paths (e.g. ignoring error handling) and it doesn't include the read-model (projections) when updating clients. Although, it's a good "mind map" of what is happening when a new translation is requested in a browser and sent to our application.*
 
-This diagram covers the automated translation scenario (using a C++ worker consuming from a RabbitMQ), but the manual sequence diagram can still be found [here](./resources/sequence.svg).
+This diagram covers the automated translation scenario using marian-server as our translation-service.
 
-![Applicaton sequence diagram.](./resources/sequence.svg)
+![Applicaton sequence diagram.](./resources/marian-sequence.svg)
 
 ## Project organization
 
@@ -145,14 +178,24 @@ This diagram covers the automated translation scenario (using a C++ worker consu
 
 *For development, I've used `virtuallenvwrapper` and Visual Studio Code. All Python files were linted with `Flake8` (which is faster), `pylint` (which covers more issues), `pydocstrings`, formatted with `yapf` and `isort`.*
 
-### C++ Source Code
+### C++ Source Code (*rabbitmq-consumer*)
 
 The `nmt` directory contains the C++ worker project for the automated translation service:
 
 - `Makefile` for building and running the worker;
-- `marian` as a submodule for NMT;
-- `data/` directory with dataset and model;
-- `Dockerfile` for building the C++ worker in a container environment and use it with the Python project;
+- `src` where the main consumer loop application resides;
+- `src/marian` as a submodule for Marian-NMT;
+- `src/worker/` where the RabbitMQ consumer and translation class resides.
+
+### Bash Source Code (*marian-server*)
+
+The `marian` directory contains scripts for building, training and running Marian-NMT.
+
+- `Makefile` for building and running the worker;
+- `src` where the main consumer loop application resides;
+- `src/marian` as a submodule for Marian-NMT;
+- `src/worker/` where the RabbitMQ consumer and translation class resides;
+- `Dockerfile` for building a `marian-server` image.
 
 ### Tests
 
@@ -168,10 +211,6 @@ The `nmt` directory contains the C++ worker project for the automated translatio
 *The frontend tests are excluded as the application routes, templates and read-model. Studying `Selenium` could apply here.*
 
 *A simple browser debugger or extension is capable of returning the average load time of the application `/index` page - which is around 150 ms. A better approach would be test it with `Locust` or `JMeter` and do a proper analysis - scaling worker processes and threads as necessary.*
-
-### Train
-
-
 
 ### Build, tests and deploy
 
@@ -258,6 +297,7 @@ docker-compose up -f docker-compose.yml --build
 
 * The current NMT model was trained with few iterations over a small vocabulary (due to computing limitations) resulting in poor translations - a better model should be used instead.
 * The integration of the C++ worker is through the Marian-NMT server, but the `marian` code could be compiled as a library to make it a single application.
+* The solution is incomplete and the documentation is not as good and up-to-date as the previous delivered challenge.
 * *After some time, the AJAX polling loses connection with the PostgreSQL database. It requires further investigation, but implementing the event server with `Flash-SSE` could do.*
 * *After the translations list is dynamically updated, the "Newer translations" and "Older translations" buttons are not. It's required to refresh the page after 10 entries to do so.*
 * *Escape characters are returned from the PostgreSQL, sent to the translation services and printed in the frontend as well. Some translators deal with it, others don't.*
