@@ -2,7 +2,6 @@ import sys
 
 import dramatiq
 from dramatiq.brokers.rabbitmq import RabbitmqBroker
-from dramatiq.brokers.redis import RedisBroker
 from dynaconf import FlaskDynaconf, settings
 from flask import Flask
 from flask_bootstrap import Bootstrap
@@ -71,17 +70,13 @@ def create_projections():
 
 
 def setup_worker():
-    """Set up Dramatiq with Redis as a queue.
+    """Set up Dramatiq with RabbitMQ.
 
     Dramatiq manages the message passing to background workers which run
     long tasks to avoid stalling the application responses for too long.
 
-    Redis is used as a message queue for simplicity sake. A more robust
-    infrastructure could configure a RabbitMQ here, for example.
-
     """
     logger.info('creating tasks queue')
-    #broker = RedisBroker(url=f'{settings.REDIS_URL}')
     broker = RabbitmqBroker(url=f'{settings.RABBITMQ_URL}')
     dramatiq.set_broker(broker)
 

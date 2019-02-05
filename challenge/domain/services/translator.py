@@ -2,9 +2,8 @@ from urllib.parse import urljoin
 
 from dynaconf import settings
 
-from challenge.domain.model.translation import (TranslationAborted,
-                                                TranslationFinished,
-                                                TranslationPending)
+from challenge.domain.model.translation import (
+    TranslationAborted, TranslationFinished, TranslationPending)
 from challenge.domain.services.marian.client import Client as MarianClient
 from challenge.domain.services.unbabel.client import Client as UnbabelClient
 from challenge.utils.logging import logger
@@ -137,7 +136,7 @@ class Translator:
 
         return translation
 
-    def mt_process(self, translation):
+    def nmt_process(self, translation):
         """Automatically process translation and update its status.
 
         Args:
@@ -145,45 +144,20 @@ class Translator:
 
         """
         text = translation.text
-        callback_url = urljoin(settings.API_CALLBACK, translation.id)
 
-        logger.debug(f'Requesting automatic translation with callback to '
-                     f"'{callback_url}'")
+        logger.debug(f'Requesting automatic translation')
 
         try:
-            self._marian_client.request_translation(
-                text, self._source_language, self._target_language,
-                callback_url)
+            translated_text = self._marian_client.request_translation(text)
         except:  # noqa: E722
-            event = TranslationAborted.create(f'Task scheduling error.')
+            event = TranslationAborted.create(
+                f'Marian-NMT server request failed.')
             translation.apply(event)
-
-            logger.debug(f'Client returned an error.')
+            logger.error(f'Marian-NMT server request failed.')
 
             return translation
 
-        logger.debug(f'Updating translation {translation.id}')
-
-        event = TranslationPending.create('')
+        event = TranslationFinished.create(translated_text)
         translation.apply(event)
-
-        return translation
-
-    def update(self, translation, data):
-        logger.debug(f'Updating translation {translation.id}')
-
-        # Check for a response
-        if data:
-            status = data['status']
-
-            # Check wheter update a finished translation
-            if status in _translation_finished:
-                event = TranslationFinished.create(data['translated_text'])
-                translation.apply(event)
-            # Check any other status unknown
-            else:
-                event = TranslationAborted.create(
-                    f'Translation error: {status}')
-                translation.apply(event)
 
         return translation

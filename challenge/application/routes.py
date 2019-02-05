@@ -46,7 +46,7 @@ def index():
 
         method = form.method.data
         if method == 'mt':
-            tasks.mt_task.send(translation.id)
+            tasks.nmt_task.send(translation.id)
         else:
             tasks.translation_task.send(translation.id)
         tasks.projections_task.send(translation.id)
@@ -116,12 +116,7 @@ def callback(id=None):
         logger.debug(f'processing POST "/callback/{id}"')
 
         translation = repository.get(id)
-
-        if request.data:
-            data = json.loads(request.data)
-            translation = translator.update(translation, data)
-        else:
-            translation = translator.get(translation)
+        translation = translator.get(translation)
 
         repository.save(translation)
         tasks.projections_task.send(id)

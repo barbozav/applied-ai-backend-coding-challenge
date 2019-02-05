@@ -41,10 +41,10 @@ def translation_task(id):
 
 
 @dramatiq.actor(queue_name="machine-translation")
-def mt_task(id):
+def nmt_task(id):
     """ Task for automatically processing a translation.
 
-    This task is responsible for requesting the translation service to
+    This task is responsible for requesting the Marian-NMT server to
     translate a given text from English to Spanish.
 
     The Translation aggregate is already created and persisted, so this
@@ -56,6 +56,6 @@ def mt_task(id):
         id (string): The translation aggregate UUID4 string.
     """
     translation = repository.get(id)
-    translation = translator.mt_process(translation)
+    translation = translator.nmt_process(translation)
     repository.save(translation)
     projections_task.send(id)

@@ -1,9 +1,7 @@
-import json
-from urllib.parse import urljoin
+from __future__ import division, print_function, unicode_literals
 
 from dynaconf import settings
-
-from challenge.domain.services.publisher import Publisher
+from websocket import create_connection
 
 
 class MarianClientError(Exception):
@@ -12,35 +10,20 @@ class MarianClientError(Exception):
 
 class Client:
     def __init__(self):
-        self._publisher = Publisher(settings.NMT_QUEUE)
+        pass
 
-    def request_translation(self,
-                            input,
-                            source_language,
-                            target_language,
-                            callback_url=None):
-        """Send a translation request to a Marian-NMT worker.
+    def request_translation(self, text):
+        """Send a translation request to Marian-NMT server.
 
         Args:
-            input (str): Input text to be translated.
-            source_language (str): Original (source) text language, for
-                instance: 'en' for English, 'es' for Spanish, 'pt' for
-                Portuguese.
-            target_language (str): Translated (target) text language.
-            callback_url (str): A calllback URL in which the Marian-NMT
-                worker will post whenever the translation is finished.
+            text (str): Input text to be translated.
+
+        Returns:
+            translated_text (str): The translated text.
 
         """
-        payload = {
-            'text': input,
-            'source_language': source_language,
-            'target_language': target_language,
-        }
-
-        if callback_url:
-            payload['callback_url'] = callback_url
-
-        try:
-            self._publisher.publish(json.dumps(payload))
-        except:  # noqa: E722
-            raise MarianClientError(f'Failed to schedule task.')
+        ws = create_connection(settings.MARIAN_SERVER_URI)
+        ws.send(text)
+        translated_text = ws.recv()
+        ws.close()
+        return translated_text
