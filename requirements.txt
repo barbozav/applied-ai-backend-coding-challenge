@@ -26,3 +26,4 @@ redis
 requests
 sqlalchemy
 tenacity
+websocket-client
