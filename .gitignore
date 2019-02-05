@@ -1,6 +1,7 @@
 *~
 *.pyc
 bin/
+data/
 sandbox/
 __pycache__/
 .hypothesis/
