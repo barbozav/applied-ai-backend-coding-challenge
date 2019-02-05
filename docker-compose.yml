@@ -12,11 +12,6 @@ services:
     ports:
       - 54321:5432
 
-  redis:
-    container_name: challenge_redis
-    restart: always
-    image: redis
-
   rabbitmq:
     container_name: challenge_rabbitmq
     restart: always
@@ -35,11 +30,10 @@ services:
       - .:/src
     links:
       - postgres
-      - redis
     depends_on:
       - worker
       - postgres
-      - redis
+      - rabbitmq
     command:  "gunicorn -k gevent -b 0.0.0.0:5000 challenge.application:app"
 
   worker:
@@ -50,8 +44,14 @@ services:
       - .:/src
     links:
       - postgres
-      - redis
     depends_on:
       - postgres
-      - redis
+      - rabbitmq
     command: "dramatiq-gevent -p 9 challenge.application.tasks"
+
+  marian:
+    container_name: marian_server
+    image: vbarboza/marian-server:latest
+    ports:
+      - 8080:8080
+    command: "make run"
